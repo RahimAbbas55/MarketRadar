@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from agent.tools.stock_price import get_stock_price
 
 # Calculating annualized volatility based on daily log returns' standard deviation
 def calculate_volatility(price_df: pd.DataFrame , window: int = 20) -> float:
@@ -35,7 +36,7 @@ def calculate_rsi(price_df: pd.DataFrame , period: int = 14) -> float:
 # Calculating Moving Average Convergence Divergence
 def calculate_moving_averages(price_df : pd.DataFrame , short_window: int = 20 , long_window: int = 50) -> dict:
     if price_df.empty or len(price_df) < long_window:
-        raise ValueError("Insufficient data to calculate RSI.")
+        raise ValueError("Insufficient data to calculate moving averages.")
     closes = price_df['Close']
     sma_short = closes.rolling(window = short_window).mean().iloc[-1]
     sma_long = closes.rolling(window = long_window).mean().iloc[-1]
@@ -49,4 +50,17 @@ def calculate_moving_averages(price_df : pd.DataFrame , short_window: int = 20 ,
         "ema_short" : round(float(ema_short) , 2),
         "ema_long" : round(float(ema_long),2 ),
         "trend": "bullish" if sma_short > sma_long else "bearish"
+    }
+    
+# Single entry point to get all indicators for a given stock symbol
+def get_all_indicators(ticker: str , period: str = "3mo") -> dict:
+    price_df = get_stock_price(ticker , period = period)
+    volatility = calculate_volatility(price_df)
+    rsi = calculate_rsi(price_df)
+    moving_averages = calculate_moving_averages(price_df)
+    return {
+        "ticker" : ticker.strip().upper(),
+        "volatility" : float(volatility),
+        "rsi" : float(rsi),
+        **moving_averages
     }
