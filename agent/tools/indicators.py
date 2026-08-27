@@ -31,3 +31,22 @@ def calculate_rsi(price_df: pd.DataFrame , period: int = 14) -> float:
     rs = avg_gain / avg_loss
     rsi = 100 - (100 / (1 + rs))
     return round(rsi , 2)
+
+# Calculating Moving Average Convergence Divergence
+def calculate_moving_averages(price_df : pd.DataFrame , short_window: int = 20 , long_window: int = 50) -> dict:
+    if price_df.empty or len(price_df) < long_window:
+        raise ValueError("Insufficient data to calculate RSI.")
+    closes = price_df['Close']
+    sma_short = closes.rolling(window = short_window).mean().iloc[-1]
+    sma_long = closes.rolling(window = long_window).mean().iloc[-1]
+    
+    ema_short = closes.ewm(span = short_window, adjust = False).mean().iloc[-1]
+    ema_long = closes.ewm(span = long_window, adjust = False).mean().iloc[-1]
+    
+    return {
+        "sma_short" : round(float(sma_short) , 2),
+        "sma_long" : round(float(sma_long) , 2),
+        "ema_short" : round(float(ema_short) , 2),
+        "ema_long" : round(float(ema_long),2 ),
+        "trend": "bullish" if sma_short > sma_long else "bearish"
+    }
