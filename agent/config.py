@@ -7,3 +7,6 @@ NEWSAPI_KEY = os.getenv("NEWSAPI_KEY")
 
 if not OPENAI_API_KEY:
     raise ValueError("OPENAI_API_KEY is not set in the environment variables.")
+
+if not NEWSAPI_KEY:
+    raise ValueError("NEWSAPI_KEY is not set in the environment variables.")
