@@ -53,7 +53,7 @@ Rounded out the data layer and built the first composite research tools.
 ## Progress Gallery
 
 ### Day 1 — Price data + technical indicators
-![TSLA price with moving averages](assets/day01/tsla_moving_averages.png)
+![TSLA price with moving averages](assets/day01/tsla_day1_chart.png)
 
 ### Day 2 — Multi-ticker comparison
 ![TSLA vs RIVN volatility and RSI comparison](assets/day02/tsla_vs_rivn_comparison.png)
