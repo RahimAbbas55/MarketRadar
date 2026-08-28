@@ -20,4 +20,4 @@ def run():
         print(f"Empty query: correctly caught - {e}")
 
 if __name__ == "__main__":
-    run()
+    run()   
