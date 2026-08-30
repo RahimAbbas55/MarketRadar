@@ -5,3 +5,4 @@ pandas
 numpy
 pytest
 requests
+mcp<2
