@@ -85,7 +85,7 @@ The biggest day yet: wrapped all tools as an MCP server, then built and verified
 
 ## Sample output — research_ticker
 
-\`\`\`python
+```python
 from agent.tools.research import research_ticker
 
 result = research_ticker("NVDA")
@@ -102,18 +102,18 @@ result = research_ticker("NVDA")
 #   "trend": "bullish",
 #   "recent_headlines": [...]
 # }
-\`\`\`
+```
 
 ## Setup
-\`\`\`
+```
 pip install -r requirements.txt
 cp .env.example .env  # add your API keys
-\`\`\`
+```
 
 ## Testing
-\`\`\`
+```
 pytest agent/tests/ -v
-\`\`\`
+```
 
 ## Known limitations
 - News search uses loose keyword matching (NewsAPI), which can occasionally surface tangentially related articles (e.g. searching "Apple" returning unrelated results). The agent layer will need to account for this when synthesizing answers.
