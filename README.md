@@ -13,7 +13,7 @@
 An MCP-powered agent for market and investment research. Ask natural-language questions like "compare Tesla and Rivian on volatility and recent news sentiment" and the agent chains together tool calls to pull live prices, compute technical indicators, search news, and synthesize an answer.
 
 ## Status
-Day 3 complete — all 6 tools wrapped and verified as a working MCP server.
+Day 3 complete — MCP server built and verified, full agent loop working end-to-end with real tool orchestration.
 
 ## Stack
 - Python 3.12, OpenAI function calling, MCP SDK
@@ -28,7 +28,9 @@ Day 3 complete — all 6 tools wrapped and verified as a working MCP server.
 - `compare_assets` — multi-ticker comparison with partial-failure handling ✅ built + tested
 - `research_ticker` — full single-ticker research snapshot ✅ built + tested
 - MCP server wrapper (all 6 tools registered) ✅ built + tested
-- Agent loop (OpenAI function calling) ⏳ Day 4
+- Agent loop (OpenAI function calling + MCP execution) ✅ built + tested
+- FastAPI wrapper + streaming ⏳ Day 4
+- React frontend ⏳ Day 5+
 
 ## Daily Progress Log
 
@@ -50,16 +52,25 @@ Rounded out the data layer and built the first composite research tools.
 - Known limitation surfaced: NewsAPI's keyword search can return loosely related results (e.g. "Apple" matching unrelated articles) — flagged for the agent layer to handle during synthesis
 - Debugging note: a "fixed" bug wasn't actually fixed because the file had been edited but the Python session was stale — same root cause as Day 1, now a known gotcha
 
-### Day 3 — MCP server
-Wrapped all existing tools as an actual MCP server and verified end-to-end over the real protocol, not just in-process function calls.
-- Scaffolded the server with FastMCP, pinned to `mcp<2` after discovering the installed 2.x version renamed `FastMCP` to `MCPServer` with a different API
-- Registered all 6 tools (`fetch_stock_price`, `fetch_technical_indicators`, `fetch_market_news`, `fetch_company_fundamentals`, `compare_stocks`, `get_full_research`) using `@mcp.tool()` decorators
+### Day 3 — MCP server + agent loop
+The biggest day yet: wrapped all tools as an MCP server, then built and verified the actual AI agent on top of it.
+
+**MCP server**
+- Scaffolded with FastMCP, pinned to `mcp<2` after discovering the installed 2.x version renamed `FastMCP` to `MCPServer` with a different API
+- Registered all 6 tools using `@mcp.tool()` decorators
 - Built a real MCP client test that spawns the server as a subprocess and communicates over stdio, exactly how an AI agent would connect to it
-- Verified both simple tool calls (`fetch_technical_indicators`) and multi-argument tool calls with list inputs (`compare_stocks`)
-- Three real bugs hit and fixed in sequence:
-  - Tool descriptions were blank because they were written as `#` comments above each function instead of actual docstrings inside the function body — MCP reads `__doc__`, not source comments
-  - The server file had no `if __name__ == "__main__": mcp.run()` block at all, so it was exiting immediately instead of listening for connections, which surfaced as a confusing "Connection closed" error on the client side
-  - Initially suspected a working-directory or interpreter mismatch (`command="python3"` vs the venv's actual interpreter) before finding the real root cause — a reminder that the first hypothesis for a bug isn't always the right one, and it's worth verifying each layer independently
+
+**Agent loop**
+- Built the core loop: OpenAI (gpt-4o) receives the user's question and available tools, decides which to call, we execute them via the live MCP session, and feed results back until the model has enough to answer
+- Converted MCP tool schemas directly into OpenAI's function-calling format, reusing the JSON Schema FastMCP already generates from type hints
+- Verified single-tool questions ("what's Tesla's RSI") and multi-tool chaining questions ("compare Tesla and Rivian, which is riskier") — the second correctly triggered 3 tool calls and produced a real reasoned judgment based on both volatility numbers and news sentiment, not just a data dump
+- Added error handling so a failed tool call doesn't crash the loop — the model receives the error as if it were a normal tool response and explains it naturally to the user
+- Added a max iteration safety limit to prevent infinite tool-calling loops
+
+**Debugging notes**
+- Tool descriptions were blank because they were written as `#` comments above each function instead of actual docstrings inside the function body — MCP reads `__doc__`, not source comments
+- The server file had no `if __name__ == "__main__": mcp.run()` block at all, so it exited immediately instead of listening for connections — surfaced as a confusing "Connection closed" error on the client side with no other clues
+- Multi-line async code doesn't paste cleanly into the interactive Python REPL due to indentation parsing — worth just using script files for anything beyond a one-liner
 
 ## Progress Gallery
 
