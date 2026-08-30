@@ -80,6 +80,9 @@ The biggest day yet: wrapped all tools as an MCP server, then built and verified
 ### Day 2 — Multi-ticker comparison
 ![TSLA vs RIVN volatility and RSI comparison](assets/day02/tsla_vs_rivn_comparison.png)
 
+### Day 3 - MCP server + agent loop
+![TSLA vs RIVN volatility and RSI comparison](assets/day03/Day_3.png)
+
 ## Sample output — research_ticker
 
 \`\`\`python
