@@ -13,7 +13,7 @@
 An MCP-powered agent for market and investment research. Ask natural-language questions like "compare Tesla and Rivian on volatility and recent news sentiment" and the agent chains together tool calls to pull live prices, compute technical indicators, search news, and synthesize an answer.
 
 ## Status
-Day 2 complete — all 5 core data tools built and tested (price, indicators, news, fundamentals, comparison + research composites).
+Day 3 complete — all 6 tools wrapped and verified as a working MCP server.
 
 ## Stack
 - Python 3.12, OpenAI function calling, MCP SDK
@@ -27,8 +27,8 @@ Day 2 complete — all 5 core data tools built and tested (price, indicators, ne
 - `get_company_fundamentals` — market cap, P/E, sector, 52-week range ✅ built + tested
 - `compare_assets` — multi-ticker comparison with partial-failure handling ✅ built + tested
 - `research_ticker` — full single-ticker research snapshot ✅ built + tested
-- MCP server wrapper ⏳ Day 3
-- Agent loop (OpenAI function calling) ⏳ Day 3
+- MCP server wrapper (all 6 tools registered) ✅ built + tested
+- Agent loop (OpenAI function calling) ⏳ Day 4
 
 ## Daily Progress Log
 
@@ -49,6 +49,17 @@ Rounded out the data layer and built the first composite research tools.
 - Full unit test coverage for fundamentals and comparison logic
 - Known limitation surfaced: NewsAPI's keyword search can return loosely related results (e.g. "Apple" matching unrelated articles) — flagged for the agent layer to handle during synthesis
 - Debugging note: a "fixed" bug wasn't actually fixed because the file had been edited but the Python session was stale — same root cause as Day 1, now a known gotcha
+
+### Day 3 — MCP server
+Wrapped all existing tools as an actual MCP server and verified end-to-end over the real protocol, not just in-process function calls.
+- Scaffolded the server with FastMCP, pinned to `mcp<2` after discovering the installed 2.x version renamed `FastMCP` to `MCPServer` with a different API
+- Registered all 6 tools (`fetch_stock_price`, `fetch_technical_indicators`, `fetch_market_news`, `fetch_company_fundamentals`, `compare_stocks`, `get_full_research`) using `@mcp.tool()` decorators
+- Built a real MCP client test that spawns the server as a subprocess and communicates over stdio, exactly how an AI agent would connect to it
+- Verified both simple tool calls (`fetch_technical_indicators`) and multi-argument tool calls with list inputs (`compare_stocks`)
+- Three real bugs hit and fixed in sequence:
+  - Tool descriptions were blank because they were written as `#` comments above each function instead of actual docstrings inside the function body — MCP reads `__doc__`, not source comments
+  - The server file had no `if __name__ == "__main__": mcp.run()` block at all, so it was exiting immediately instead of listening for connections, which surfaced as a confusing "Connection closed" error on the client side
+  - Initially suspected a working-directory or interpreter mismatch (`command="python3"` vs the venv's actual interpreter) before finding the real root cause — a reminder that the first hypothesis for a bug isn't always the right one, and it's worth verifying each layer independently
 
 ## Progress Gallery
 
