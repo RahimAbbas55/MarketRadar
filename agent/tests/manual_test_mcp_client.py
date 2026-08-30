@@ -1,6 +1,7 @@
 import asyncio
 import os
 import sys
+import json
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
@@ -24,6 +25,14 @@ async def run():
             print("\nCalling fetch_technical_indicators for TSLA...")
             result = await session.call_tool("fetch_technical_indicators", {"ticker": "TSLA"})
             print(result.content[0].text)
+
+            print("\nCalling compare_stocks for TSLA vs RIVN...")
+            comparison_result = await session.call_tool(
+                "compare_stocks",
+                {"tickers": ["TSLA", "RIVN"]}
+            )
+            parsed = json.loads(comparison_result.content[0].text)
+            print(json.dumps(parsed, indent=2))
 
 if __name__ == "__main__":
     asyncio.run(run())
