@@ -13,7 +13,7 @@
 An MCP-powered agent for market and investment research. Ask natural-language questions like "compare Tesla and Rivian on volatility and recent news sentiment" and the agent chains together tool calls to pull live prices, compute technical indicators, search news, and synthesize an answer.
 
 ## Status
-Day 3 complete — MCP server built and verified, full agent loop working end-to-end with real tool orchestration.
+Day 4 complete — FastAPI layer built with both standard and streaming (SSE) chat endpoints, backed by a persistent MCP session.
 
 ## Stack
 - Python 3.12, OpenAI function calling, MCP SDK
@@ -29,8 +29,10 @@ Day 3 complete — MCP server built and verified, full agent loop working end-to
 - `research_ticker` — full single-ticker research snapshot ✅ built + tested
 - MCP server wrapper (all 6 tools registered) ✅ built + tested
 - Agent loop (OpenAI function calling + MCP execution) ✅ built + tested
-- FastAPI wrapper + streaming ⏳ Day 4
+- FastAPI layer with persistent MCP session ✅ built + tested
+- Streaming chat endpoint (SSE, tool-call trace events) ✅ built + tested
 - React frontend ⏳ Day 5+
+- GCP + Terraform deployment ⏳ Day 6+
 
 ## Daily Progress Log
 
@@ -71,6 +73,15 @@ The biggest day yet: wrapped all tools as an MCP server, then built and verified
 - Tool descriptions were blank because they were written as `#` comments above each function instead of actual docstrings inside the function body — MCP reads `__doc__`, not source comments
 - The server file had no `if __name__ == "__main__": mcp.run()` block at all, so it exited immediately instead of listening for connections — surfaced as a confusing "Connection closed" error on the client side with no other clues
 - Multi-line async code doesn't paste cleanly into the interactive Python REPL due to indentation parsing — worth just using script files for anything beyond a one-liner
+
+### Day 4 — FastAPI layer and streaming
+Wrapped the agent in a real HTTP API, moving from test scripts to something an actual frontend could call.
+
+- Built a FastAPI app with a persistent MCP session managed via FastAPI's lifespan context — the MCP server subprocess starts once when the API starts and stays alive for all requests, rather than reconnecting on every call
+- Added `POST /chat`, a standard request/response endpoint wrapping the existing agent loop
+- Added `POST /chat/stream`, a Server-Sent Events (SSE) endpoint that streams progress in real time: which tool the agent is calling, what it returned, and the final synthesized answer as three distinct event types
+- Verified both endpoints with real requests, including a multi-tool comparison question, confirming events arrive progressively rather than all at once
+- This sets up the key frontend feature planned for later: showing the agent's reasoning and tool calls live as it works, not just a spinner followed by one final answer
 
 ## Progress Gallery
 
