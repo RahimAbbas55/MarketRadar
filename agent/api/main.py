@@ -2,9 +2,10 @@ import os
 import sys
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from pydantic import BaseModel
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
-from agent.core.llm_agent import mcp_tools_to_openai_schema
+from agent.core.llm_agent import mcp_tools_to_openai_schema, run_agent
 
 SERVER_PARAMS = StdioServerParameters(
     command=sys.executable,
@@ -28,11 +29,25 @@ async def lifespan(app: FastAPI):
 
             yield
 
-    # shutdown: the async with blocks above close the session automatically on exit
     mcp_state.clear()
 
 app = FastAPI(title="MarketRadar API", lifespan=lifespan)
 
+class ChatRequest(BaseModel):
+    message: str
+
+class ChatResponse(BaseModel):
+    answer: str
+
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
+
+@app.post("/chat", response_model=ChatResponse)
+async def chat(request: ChatRequest):
+    answer = await run_agent(
+        request.message,
+        mcp_state["session"],
+        mcp_state["openai_tools"]
+    )
+    return ChatResponse(answer=answer)
