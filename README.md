@@ -105,6 +105,9 @@ The biggest single day yet — went from a backend-only agent to a complete, usa
 ### Day 3 - MCP server + agent loop
 ![TSLA vs RIVN volatility and RSI comparison](assets/day03/Day_3.png)
 
+### Day 4 - Chat UI Working
+![Chat UI Working](assets/day04/Day_4.png)
+
 ## Sample output — research_ticker
 
 ```python
