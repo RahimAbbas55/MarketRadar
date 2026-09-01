@@ -1,9 +1,9 @@
-import { useState } from "react";
 import ReactMarkdown from "react-markdown";
+import { useState, useRef, useEffect } from "react";
 import "./App.css";
 
 interface Message {
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "error";
   content: string;
 }
 
@@ -14,6 +14,12 @@ function App() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [activeTools, setActiveTools] = useState<string[]>([]);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, activeTools]);
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -64,13 +70,15 @@ function App() {
       setMessages((prev) => [
         ...prev,
         {
-          role: "assistant",
-          content: "Something went wrong. Please try again.",
+          role: "error",
+          content:
+            "Connection lost. Check that the backend is running and try again.",
         },
       ]);
       setActiveTools([]);
     } finally {
       setIsLoading(false);
+      inputRef.current?.focus();
     }
   };
 
@@ -106,9 +114,11 @@ function App() {
             ))}
           </div>
         )}
+        <div ref={messagesEndRef} />
       </div>
       <div className="input-area">
         <input
+          ref={inputRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
