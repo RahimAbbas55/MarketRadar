@@ -13,7 +13,7 @@
 An MCP-powered agent for market and investment research. Ask natural-language questions like "compare Tesla and Rivian on volatility and recent news sentiment" and the agent chains together tool calls to pull live prices, compute technical indicators, search news, and synthesize an answer.
 
 ## Status
-Day 4 complete — FastAPI layer built with both standard and streaming (SSE) chat endpoints, backed by a persistent MCP session.
+Day 4 complete — full-stack chat interface working end-to-end: FastAPI streaming backend, persistent MCP session, and a polished React frontend with live tool-call tracing.
 
 ## Stack
 - Python 3.12, OpenAI function calling, MCP SDK
@@ -31,8 +31,8 @@ Day 4 complete — FastAPI layer built with both standard and streaming (SSE) ch
 - Agent loop (OpenAI function calling + MCP execution) ✅ built + tested
 - FastAPI layer with persistent MCP session ✅ built + tested
 - Streaming chat endpoint (SSE, tool-call trace events) ✅ built + tested
-- React frontend ⏳ Day 5+
-- GCP + Terraform deployment ⏳ Day 6+
+- React frontend with live tool-call trace + markdown rendering ✅ built + tested
+- GCP + Terraform deployment ⏳ Day 5+
 
 ## Daily Progress Log
 
@@ -74,14 +74,25 @@ The biggest day yet: wrapped all tools as an MCP server, then built and verified
 - The server file had no `if __name__ == "__main__": mcp.run()` block at all, so it exited immediately instead of listening for connections — surfaced as a confusing "Connection closed" error on the client side with no other clues
 - Multi-line async code doesn't paste cleanly into the interactive Python REPL due to indentation parsing — worth just using script files for anything beyond a one-liner
 
-### Day 4 — FastAPI layer and streaming
-Wrapped the agent in a real HTTP API, moving from test scripts to something an actual frontend could call.
+### Day 4 — FastAPI, streaming, and full frontend
+The biggest single day yet — went from a backend-only agent to a complete, usable product.
 
-- Built a FastAPI app with a persistent MCP session managed via FastAPI's lifespan context — the MCP server subprocess starts once when the API starts and stays alive for all requests, rather than reconnecting on every call
-- Added `POST /chat`, a standard request/response endpoint wrapping the existing agent loop
-- Added `POST /chat/stream`, a Server-Sent Events (SSE) endpoint that streams progress in real time: which tool the agent is calling, what it returned, and the final synthesized answer as three distinct event types
-- Verified both endpoints with real requests, including a multi-tool comparison question, confirming events arrive progressively rather than all at once
-- This sets up the key frontend feature planned for later: showing the agent's reasoning and tool calls live as it works, not just a spinner followed by one final answer
+**Backend**
+- Built a FastAPI app with a persistent MCP session managed via lifespan context, avoiding a new subprocess per request
+- Added both `POST /chat` (standard) and `POST /chat/stream` (SSE) endpoints
+- Fixed a CORS issue where the browser's automatic preflight `OPTIONS` request was being rejected with 405, since FastAPI had no CORS middleware configured
+
+**Frontend**
+- Scaffolded with React + Vite + TypeScript
+- Built a chat UI wired to the streaming endpoint via manual SSE parsing (browsers' built-in `EventSource` doesn't support POST, so the protocol is parsed by hand from a `fetch` response stream)
+- Added a live tool-call trace so the user sees "Calling compare stocks..." in real time while the agent works, not just a loading spinner
+- Added markdown rendering for assistant responses, since the LLM naturally formats answers with headers and bullet points that were previously showing as raw `###` and `**` characters
+- Full dark theme redesign matching the project's purple brand identity
+- Polish: auto-scroll to latest message, visually distinct error states for connection failures, auto-focus back to the input after each response
+
+**Debugging notes**
+- CORS preflight requests fail silently as generic 405s with no indication of the real cause unless you know to look for missing `CORSMiddleware`
+- SSE responses can arrive split mid-event across network chunk boundaries — buffering and re-joining partial lines is required, not optional, for reliable parsing
 
 ## Progress Gallery
 
