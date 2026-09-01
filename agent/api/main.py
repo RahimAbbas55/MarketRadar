@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 from agent.core.llm_agent import mcp_tools_to_openai_schema, run_agent, run_agent_streaming
+from fastapi.middleware.cors import CORSMiddleware
 
 SERVER_PARAMS = StdioServerParameters(
     command=sys.executable,
@@ -35,6 +36,13 @@ async def lifespan(app: FastAPI):
     mcp_state.clear()
 
 app = FastAPI(title="MarketRadar API", lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class ChatRequest(BaseModel):
     message: str
