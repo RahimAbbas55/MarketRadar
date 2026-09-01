@@ -1,75 +1,47 @@
-# React + TypeScript + Vite
+# MarketRadar — Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + TypeScript chat interface for MarketRadar, an AI agent for market and investment research. Talks to the FastAPI backend's streaming endpoint and renders the agent's tool-call trace live as it works.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Real-time streaming chat via Server-Sent Events (SSE), parsed manually from a `fetch` response stream (browsers' built-in `EventSource` doesn't support POST requests, which this API requires)
+- Live tool-call trace — shows which tool the agent is calling (e.g. "Calling Compare stocks...") while it works, not just a loading spinner
+- Markdown rendering for assistant responses (headers, bold text, bullet lists)
+- Distinct visual state for connection errors vs normal responses
+- Auto-scroll to the latest message, auto-focus back to the input after each response
 
-## React Compiler
+## Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- React 18 + TypeScript
+- Vite (dev server + build tool)
+- `react-markdown` for rendering formatted agent responses
 
-## Expanding the ESLint configuration
+## Setup
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+Runs on `http://localhost:5173` by default.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Requirements
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+The backend must be running for this to work — see the root `README.md` for backend setup. By default, the frontend expects the API at `http://localhost:8000` (set in `src/App.tsx` via `API_URL`).
 
+## Build
+
+```bash
+npm run build
+```
+
+Outputs a production build to `dist/`.
+
+## Project structure
+
+```
+src/
+├── App.tsx       # main chat component: state, SSE streaming logic, UI
+├── App.css       # dark theme styling matching the project's purple brand
+└── main.tsx      # React entry point
 ```
