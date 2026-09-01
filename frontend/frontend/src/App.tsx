@@ -59,29 +59,33 @@ function App() {
   }
 
   return (
-    <div className="app">
-      <h1>MarketRadar</h1>
-      <div className="messages">
-        {messages.map((msg, i) => (
-          <div key={i} className={`message ${msg.role}`}>
-            {msg.content}
-          </div>
-        ))}
-      </div>
-      <div className="input-area">
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-          placeholder="Ask about a stock..."
-          disabled={isLoading}
-        />
-        <button onClick={handleSend} disabled={isLoading}>
-          {isLoading ? 'Thinking...' : 'Send'}
-        </button>
-      </div>
+  <div className="app">
+    <h1>MarketRadar</h1>
+    <p className="subtitle">AI-powered investment research</p>
+    <div className="messages">
+      {messages.length === 0 && (
+        <div className="empty-state">Ask about a stock, or compare two — e.g. "Compare TSLA and RIVN"</div>
+      )}
+      {messages.map((msg, i) => (
+        <div key={i} className={`message ${msg.role}`}>
+          {msg.content}
+        </div>
+      ))}
     </div>
-  )
+    <div className="input-area">
+      <input
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+        placeholder="Ask about a stock..."
+        disabled={isLoading}
+      />
+      <button onClick={handleSend} disabled={isLoading}>
+        {isLoading ? 'Thinking...' : 'Send'}
+      </button>
+    </div>
+  </div>
+)
 }
 
 export default App
