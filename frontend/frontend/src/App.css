@@ -133,3 +133,56 @@ body {
   font-size: 0.9rem;
   text-align: center;
 }
+
+.trace {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  align-self: flex-start;
+  padding: 0.6rem 0.9rem;
+}
+
+.trace-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #9ca3af;
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+.trace-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #a78bfa;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+.message.assistant h3, .message.assistant h4 {
+  margin: 0.5rem 0 0.3rem;
+  font-size: 1rem;
+  color: #e9d5ff;
+}
+
+.message.assistant ul {
+  margin: 0.3rem 0;
+  padding-left: 1.2rem;
+}
+
+.message.assistant li {
+  margin-bottom: 0.2rem;
+}
+
+.message.assistant strong {
+  color: #c4b5fd;
+}
+
+.message.assistant p {
+  margin: 0.4rem 0;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
