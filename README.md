@@ -94,6 +94,17 @@ The biggest single day yet — went from a backend-only agent to a complete, usa
 - CORS preflight requests fail silently as generic 405s with no indication of the real cause unless you know to look for missing `CORSMiddleware`
 - SSE responses can arrive split mid-event across network chunk boundaries — buffering and re-joining partial lines is required, not optional, for reliable parsing
 
+## Deployment
+
+**Backend (live):** https://marketradar-backend-533485774082.us-central1.run.app
+
+### Note on Apple Silicon builds
+If building Docker images on an Apple Silicon Mac (M1/M2/M3), the default build architecture is `arm64`, but Cloud Run requires `amd64`. Build with:
+```
+docker build --platform linux/amd64 -t marketradar-backend .
+```
+Omitting this causes a cryptic `exec format error` on Cloud Run with no indication of the real cause.
+
 ## Progress Gallery
 
 ### Day 1 — Price data + technical indicators
