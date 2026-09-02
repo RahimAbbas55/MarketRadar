@@ -13,7 +13,7 @@
 An MCP-powered agent for market and investment research. Ask natural-language questions like "compare Tesla and Rivian on volatility and recent news sentiment" and the agent chains together tool calls to pull live prices, compute technical indicators, search news, and synthesize an answer.
 
 ## Status
-Day 4 complete — full-stack chat interface working end-to-end: FastAPI streaming backend, persistent MCP session, and a polished React frontend with live tool-call tracing.
+Day 5 complete — MarketRadar is live: both frontend and backend deployed and verified end-to-end on Google Cloud Run.
 
 ## Stack
 - Python 3.12, OpenAI function calling, MCP SDK
@@ -32,7 +32,9 @@ Day 4 complete — full-stack chat interface working end-to-end: FastAPI streami
 - FastAPI layer with persistent MCP session ✅ built + tested
 - Streaming chat endpoint (SSE, tool-call trace events) ✅ built + tested
 - React frontend with live tool-call trace + markdown rendering ✅ built + tested
-- GCP + Terraform deployment ⏳ Day 5+
+- Docker containerization (backend + frontend) ✅ built + tested
+- Manual deployment to GCP Cloud Run ✅ live
+- Terraform infrastructure-as-code ⏳ Day 6+
 
 ## Daily Progress Log
 
@@ -94,16 +96,37 @@ The biggest single day yet — went from a backend-only agent to a complete, usa
 - CORS preflight requests fail silently as generic 405s with no indication of the real cause unless you know to look for missing `CORSMiddleware`
 - SSE responses can arrive split mid-event across network chunk boundaries — buffering and re-joining partial lines is required, not optional, for reliable parsing
 
+### Day 5 — Containerization and live deployment
+MarketRadar went from "runs on my machine" to actually live on the internet.
+
+- Wrote a Dockerfile for the backend (Python 3.12, FastAPI + MCP subprocess in one container) and verified it locally before touching the cloud
+- Wrote a multi-stage Dockerfile for the frontend (Node build stage → nginx serving stage), keeping the final image lean by discarding the Node.js toolchain entirely from the shipped image
+- Set up a new GCP project, enabled Cloud Run, Artifact Registry, Secret Manager, and Cloud Build
+- Pushed both images to Artifact Registry and deployed both services to Cloud Run
+- Configured the frontend to use a build-time environment variable (`VITE_API_URL`) for the backend URL, so local development and production point to different backends without code changes
+- Updated backend CORS to allow the deployed frontend's origin
+
+**Debugging notes**
+- Hit a GCP project quota limit while creating a new project — discovered that deleted projects still count against quota for a 30-day grace period, meaning deleting old projects doesn't free up quota immediately. Switched to a different Google account to unblock progress.
+- Backend deployment failed with a cryptic `exec format error` and no further explanation from `gcloud`. Root cause: Docker images built on Apple Silicon default to `arm64`, but Cloud Run requires `amd64`. Fixed by explicitly building with `--platform linux/amd64`.
+- CORS needed updating twice: once for local container-to-container testing (new localhost port), once for the actual deployed frontend origin — a reminder that CORS configuration needs revisiting at every new environment, not just once.
+
+Both services verified end-to-end in production: a real question, through the live frontend, hits the live backend, spins up the MCP subprocess, calls OpenAI, and returns a grounded answer — the full pipeline working exactly as it does locally, just now reachable from anywhere.
+
+
 ## Deployment
 
+**Frontend (live):** https://marketradar-frontend-533485774082.us-central1.run.app/
 **Backend (live):** https://marketradar-backend-533485774082.us-central1.run.app
 
+Both services run on Google Cloud Run, containerized with Docker and pushed via Artifact Registry.
+
 ### Note on Apple Silicon builds
-If building Docker images on an Apple Silicon Mac (M1/M2/M3), the default build architecture is `arm64`, but Cloud Run requires `amd64`. Build with:
+Docker images built on an Apple Silicon Mac (M1/M2/M3) default to `arm64` architecture, but Cloud Run requires `amd64`. Build with the platform flag explicitly:
 ```
-docker build --platform linux/amd64 -t marketradar-backend .
+docker build --platform linux/amd64 -t <image-name> .
 ```
-Omitting this causes a cryptic `exec format error` on Cloud Run with no indication of the real cause.
+Omitting this causes a cryptic `exec format error` on Cloud Run with no indication of the real cause — the container image builds and pushes successfully, and only fails at the Cloud Run startup health check stage.
 
 ## Progress Gallery
 
