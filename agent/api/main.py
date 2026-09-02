@@ -39,7 +39,11 @@ app = FastAPI(title="MarketRadar API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "https://marketradar-frontend-533485774082.us-central1.run.app"
+    ],
     allow_methods=["*"],
     allow_headers=["*"],
 )
