@@ -104,3 +104,25 @@ resource "google_cloud_run_v2_service_iam_member" "backend_public" {
   role     = "roles/run.invoker"
   member   = "allUsers"
 }
+
+resource "google_cloud_run_v2_service" "frontend" {
+  name     = "marketradar-frontend"
+  location = "us-central1"
+
+  template {
+    containers {
+      image = "us-central1-docker.pkg.dev/marketradar-prod/marketradar-repo/frontend:latest"
+
+      ports {
+        container_port = 8080
+      }
+    }
+  }
+}
+
+resource "google_cloud_run_v2_service_iam_member" "frontend_public" {
+  location = google_cloud_run_v2_service.frontend.location
+  name     = google_cloud_run_v2_service.frontend.name
+  role     = "roles/run.invoker"
+  member   = "allUsers"
+}

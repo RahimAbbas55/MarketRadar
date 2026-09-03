@@ -13,7 +13,7 @@
 An MCP-powered agent for market and investment research. Ask natural-language questions like "compare Tesla and Rivian on volatility and recent news sentiment" and the agent chains together tool calls to pull live prices, compute technical indicators, search news, and synthesize an answer.
 
 ## Status
-Day 5 complete — MarketRadar is live: both frontend and backend deployed and verified end-to-end on Google Cloud Run.
+MarketRadar is fully deployed and Terraform-managed — frontend and backend both live on Google Cloud Run, with Artifact Registry and Secret Manager provisioned as infrastructure-as-code.
 
 ## Stack
 - Python 3.12, OpenAI function calling, MCP SDK
@@ -33,8 +33,7 @@ Day 5 complete — MarketRadar is live: both frontend and backend deployed and v
 - Streaming chat endpoint (SSE, tool-call trace events) ✅ built + tested
 - React frontend with live tool-call trace + markdown rendering ✅ built + tested
 - Docker containerization (backend + frontend) ✅ built + tested
-- Manual deployment to GCP Cloud Run ✅ live
-- Terraform infrastructure-as-code ⏳ Day 6+
+- GCP deployment via Terraform (Cloud Run, Artifact Registry, Secret Manager) ✅ live
 
 ## Daily Progress Log
 
@@ -113,12 +112,28 @@ MarketRadar went from "runs on my machine" to actually live on the internet.
 
 Both services verified end-to-end in production: a real question, through the live frontend, hits the live backend, spins up the MCP subprocess, calls OpenAI, and returns a grounded answer — the full pipeline working exactly as it does locally, just now reachable from anywhere.
 
+### Terraform: from manual deployment to infrastructure-as-code
+Took the manually deployed GCP infrastructure and brought it fully under Terraform management.
+
+- Set up the Google provider and defined the Artifact Registry repository, both Cloud Run services (frontend + backend), and Secret Manager resources for API keys entirely in `.tf` files
+- Moved API keys out of plain Cloud Run environment variables into Secret Manager, with proper IAM bindings granting Cloud Run's service account read access
+- Used `terraform import` to bring the already-existing, manually-created resources (Artifact Registry repo, both Cloud Run services) under Terraform's management without destroying and recreating them — verified via `terraform plan` showing zero unwanted destroys before ever running apply
+- Ran a clean `terraform apply` twice (once for the backend + secrets, once for the frontend), both completing without errors
+
+**Debugging notes**
+- Accidentally committed a 109MB Terraform provider binary before `.gitignore` caught up, which GitHub rejected outright. Fixed by resetting local commits (safe since they hadn't been pushed yet) and redoing them with `.terraform/` properly excluded from the start.
+- `terraform plan` briefly displayed both real API keys in plaintext during a diff, since existing (non-sensitive-declared) resource values aren't masked the same way `sensitive` variables are. Rotated both keys immediately as a precaution.
+- Discovered intermittent yfinance failures specifically in the deployed (Cloud Run) environment — Yahoo Finance occasionally rate-limits or briefly rejects requests from cloud provider IP ranges, since yfinance is an unofficial library, not a stable public API. The existing error handling already handles this gracefully; retrying the same request shortly after typically succeeds.
+- Learned that using `:latest` as an image tag in Terraform means Terraform can't detect when the underlying image changes, since the tag string never changes — a real limitation worth addressing with versioned tags or digests in a future pass.
+
+MarketRadar's entire GCP footprint — registry, both services, secrets, and IAM — can now be destroyed and recreated from scratch with `terraform apply`, with zero manual `gcloud` commands required.
+
 ## Deployment
 
 **Frontend (live):** https://marketradar-frontend-533485774082.us-central1.run.app/
 **Backend (live):** https://marketradar-backend-533485774082.us-central1.run.app
 
-Both services run on Google Cloud Run, containerized with Docker and pushed via Artifact Registry.
+Both services provisioned entirely via Terraform (see `terraform/`), containerized with Docker, pushed via Artifact Registry.
 
 ### Known limitation: intermittent yfinance failures in cloud environments
 Since yfinance is an unofficial library accessing Yahoo Finance's internal endpoints (not a stable public API), requests from cloud provider IP ranges (including GCP) are occasionally rate-limited or briefly rejected. This surfaces as an "insufficient data" error on some requests, which the agent explains gracefully rather than crashing, but the same question retried shortly after often succeeds. This is a known constraint of the underlying data source, not a bug in the application logic.
