@@ -113,13 +113,15 @@ MarketRadar went from "runs on my machine" to actually live on the internet.
 
 Both services verified end-to-end in production: a real question, through the live frontend, hits the live backend, spins up the MCP subprocess, calls OpenAI, and returns a grounded answer — the full pipeline working exactly as it does locally, just now reachable from anywhere.
 
-
 ## Deployment
 
 **Frontend (live):** https://marketradar-frontend-533485774082.us-central1.run.app/
 **Backend (live):** https://marketradar-backend-533485774082.us-central1.run.app
 
 Both services run on Google Cloud Run, containerized with Docker and pushed via Artifact Registry.
+
+### Known limitation: intermittent yfinance failures in cloud environments
+Since yfinance is an unofficial library accessing Yahoo Finance's internal endpoints (not a stable public API), requests from cloud provider IP ranges (including GCP) are occasionally rate-limited or briefly rejected. This surfaces as an "insufficient data" error on some requests, which the agent explains gracefully rather than crashing, but the same question retried shortly after often succeeds. This is a known constraint of the underlying data source, not a bug in the application logic.
 
 ### Note on Apple Silicon builds
 Docker images built on an Apple Silicon Mac (M1/M2/M3) default to `arm64` architecture, but Cloud Run requires `amd64`. Build with the platform flag explicitly:
