@@ -1,20 +1,30 @@
-terraform {
-  required_providers {
-    google = {
-      source  = "hashicorp/google"
-      version = "~> 5.0"
+resource "google_cloud_run_v2_service" "backend" {
+  name     = "marketradar-backend"
+  location = "us-central1"
+
+  template {
+    containers {
+      image = "us-central1-docker.pkg.dev/marketradar-prod/marketradar-repo/backend:latest"
+
+      env {
+        name  = "OPENAI_API_KEY"
+        value = var.openai_api_key
+      }
+      env {
+        name  = "NEWSAPI_KEY"
+        value = var.newsapi_key
+      }
+
+      ports {
+        container_port = 8080
+      }
     }
   }
 }
 
-provider "google" {
-  project = "marketradar-prod"
-  region  = "us-central1"
-}
-
-resource "google_artifact_registry_repository" "marketradar_repo" {
-  location      = "us-central1"
-  repository_id = "marketradar-repo"
-  description   = "MarketRadar container images"
-  format        = "DOCKER"
+resource "google_cloud_run_v2_service_iam_member" "backend_public" {
+  location = google_cloud_run_v2_service.backend.location
+  name     = google_cloud_run_v2_service.backend.name
+  role     = "roles/run.invoker"
+  member   = "allUsers"
 }
