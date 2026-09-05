@@ -14,115 +14,46 @@ provider "google" {
 
 data "google_project" "project" {}
 
-resource "google_artifact_registry_repository" "marketradar_repo" {
+module "registry" {
+  source        = "./modules/registry"
   location      = "us-central1"
   repository_id = "marketradar-repo"
   description   = "MarketRadar container images"
-  format        = "DOCKER"
 }
 
-resource "google_secret_manager_secret" "openai_api_key" {
-  secret_id = "openai-api-key"
-
-  replication {
-    auto {}
-  }
+module "openai_secret" {
+  source           = "./modules/secrets"
+  secret_id        = "openai-api-key"
+  secret_value     = var.openai_api_key
+  accessor_member  = "serviceAccount:${data.google_project.project.number}-compute@developer.gserviceaccount.com"
 }
 
-resource "google_secret_manager_secret_version" "openai_api_key_version" {
-  secret      = google_secret_manager_secret.openai_api_key.id
-  secret_data = var.openai_api_key
+module "newsapi_secret" {
+  source           = "./modules/secrets"
+  secret_id        = "newsapi-key"
+  secret_value     = var.newsapi_key
+  accessor_member  = "serviceAccount:${data.google_project.project.number}-compute@developer.gserviceaccount.com"
 }
 
-resource "google_secret_manager_secret" "newsapi_key" {
-  secret_id = "newsapi-key"
+module "backend" {
+  source         = "./modules/compute"
+  service_name   = "marketradar-backend"
+  location       = "us-central1"
+  image          = "us-central1-docker.pkg.dev/marketradar-prod/marketradar-repo/backend:latest"
+  container_port = 8080
 
-  replication {
-    auto {}
-  }
-}
-
-resource "google_secret_manager_secret_version" "newsapi_key_version" {
-  secret      = google_secret_manager_secret.newsapi_key.id
-  secret_data = var.newsapi_key
-}
-
-resource "google_secret_manager_secret_iam_member" "openai_secret_access" {
-  secret_id = google_secret_manager_secret.openai_api_key.id
-  role      = "roles/secretmanager.secretAccessor"
-  member    = "serviceAccount:${data.google_project.project.number}-compute@developer.gserviceaccount.com"
-}
-
-resource "google_secret_manager_secret_iam_member" "newsapi_secret_access" {
-  secret_id = google_secret_manager_secret.newsapi_key.id
-  role      = "roles/secretmanager.secretAccessor"
-  member    = "serviceAccount:${data.google_project.project.number}-compute@developer.gserviceaccount.com"
-}
-
-resource "google_cloud_run_v2_service" "backend" {
-  name     = "marketradar-backend"
-  location = "us-central1"
-
-  template {
-    containers {
-      image = "us-central1-docker.pkg.dev/marketradar-prod/marketradar-repo/backend:latest"
-
-      env {
-        name = "OPENAI_API_KEY"
-        value_source {
-          secret_key_ref {
-            secret  = google_secret_manager_secret.openai_api_key.secret_id
-            version = "latest"
-          }
-        }
-      }
-      env {
-        name = "NEWSAPI_KEY"
-        value_source {
-          secret_key_ref {
-            secret  = google_secret_manager_secret.newsapi_key.secret_id
-            version = "latest"
-          }
-        }
-      }
-
-      ports {
-        container_port = 8080
-      }
-    }
-  }
-
-  depends_on = [
-    google_secret_manager_secret_iam_member.openai_secret_access,
-    google_secret_manager_secret_iam_member.newsapi_secret_access
+  secret_env_vars = [
+    { name = "OPENAI_API_KEY", secret_id = module.openai_secret.secret_id },
+    { name = "NEWSAPI_KEY", secret_id = module.newsapi_secret.secret_id }
   ]
+
+  depends_on = [module.openai_secret, module.newsapi_secret]
 }
 
-resource "google_cloud_run_v2_service_iam_member" "backend_public" {
-  location = google_cloud_run_v2_service.backend.location
-  name     = google_cloud_run_v2_service.backend.name
-  role     = "roles/run.invoker"
-  member   = "allUsers"
-}
-
-resource "google_cloud_run_v2_service" "frontend" {
-  name     = "marketradar-frontend"
-  location = "us-central1"
-
-  template {
-    containers {
-      image = "us-central1-docker.pkg.dev/marketradar-prod/marketradar-repo/frontend:latest"
-
-      ports {
-        container_port = 8080
-      }
-    }
-  }
-}
-
-resource "google_cloud_run_v2_service_iam_member" "frontend_public" {
-  location = google_cloud_run_v2_service.frontend.location
-  name     = google_cloud_run_v2_service.frontend.name
-  role     = "roles/run.invoker"
-  member   = "allUsers"
+module "frontend" {
+  source         = "./modules/compute"
+  service_name   = "marketradar-frontend"
+  location       = "us-central1"
+  image          = "us-central1-docker.pkg.dev/marketradar-prod/marketradar-repo/frontend:latest"
+  container_port = 8080
 }
