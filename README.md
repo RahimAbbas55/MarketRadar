@@ -175,7 +175,9 @@ Omitting this causes a cryptic `exec format error` on Cloud Run with no indicati
 ![Chat UI Working](assets/day04/Day_04.png)
 
 ### Day 5 - Live on Google Cloud Run
-![MarketRadar deployed and running on Cloud Run](assets/day05/Day_05.png)
+![MarketRadar front-end deployed and running on Cloud Run](assets/day05/mr-fn.png)
+
+![MarketRadar back-end deployed and running on Cloud Run](assets/day05/mr-b.png)
 
 ## Sample output — research_ticker
 
