@@ -13,12 +13,12 @@
 An MCP-powered agent for market and investment research. Ask natural-language questions like "compare Tesla and Rivian on volatility and recent news sentiment" and the agent chains together tool calls to pull live prices, compute technical indicators, search news, and synthesize an answer.
 
 ## Status
-MarketRadar is fully deployed and Terraform-managed — frontend and backend both live on Google Cloud Run, with Artifact Registry and Secret Manager provisioned as infrastructure-as-code.
+MarketRadar is fully deployed and Terraform-managed, with infrastructure now modularized (Stage 2 of the Terraform roadmap complete) — frontend and backend both live on Google Cloud Run, with Artifact Registry and Secret Manager provisioned as infrastructure-as-code.
 
 ## Stack
 - Python 3.12, OpenAI function calling, MCP SDK
 - FastAPI backend, React + TypeScript frontend
-- GCP (Cloud Run, Artifact Registry, Secret Manager) provisioned via Terraform
+- GCP (Cloud Run, Artifact Registry, Secret Manager) provisioned via modular Terraform
 
 ## Tools (MCP) — status
 - `get_stock_price` — historical + current OHLCV data ✅ built + tested
@@ -34,6 +34,10 @@ MarketRadar is fully deployed and Terraform-managed — frontend and backend bot
 - React frontend with live tool-call trace + markdown rendering ✅ built + tested
 - Docker containerization (backend + frontend) ✅ built + tested
 - GCP deployment via Terraform (Cloud Run, Artifact Registry, Secret Manager) ✅ live
+- Terraform modularization (registry, secrets, compute modules) ✅ complete
+- Multi-environment Terraform (dev/staging) ⏳ Stage 3
+- Remote state + CI/CD ⏳ Stage 4
+- Drift detection practice ⏳ Stage 5
 
 ## Daily Progress Log
 
@@ -112,7 +116,7 @@ MarketRadar went from "runs on my machine" to actually live on the internet.
 
 Both services verified end-to-end in production: a real question, through the live frontend, hits the live backend, spins up the MCP subprocess, calls OpenAI, and returns a grounded answer — the full pipeline working exactly as it does locally, just now reachable from anywhere.
 
-### Terraform: from manual deployment to infrastructure-as-code
+### Terraform Stage 1 — From manual deployment to infrastructure-as-code
 Took the manually deployed GCP infrastructure and brought it fully under Terraform management.
 
 - Set up the Google provider and defined the Artifact Registry repository, both Cloud Run services (frontend + backend), and Secret Manager resources for API keys entirely in `.tf` files
@@ -128,21 +132,32 @@ Took the manually deployed GCP infrastructure and brought it fully under Terrafo
 
 MarketRadar's entire GCP footprint — registry, both services, secrets, and IAM — can now be destroyed and recreated from scratch with `terraform apply`, with zero manual `gcloud` commands required.
 
+### Terraform Stage 2 — Modularization
+Refactored the flat `main.tf` into three reusable modules: `registry` (Artifact Registry), `secrets` (Secret Manager secret + version + IAM access, bundled as one unit), and `compute` (Cloud Run service + public IAM binding, parameterized to handle both plain env vars and Secret Manager-sourced ones via a `dynamic` block).
+
+- The `compute` module is called twice (backend, frontend) and the `secrets` module is called twice (OpenAI key, NewsAPI key) — replacing what were previously near-duplicate resource blocks with single, reusable definitions
+- Used `terraform state mv` to remap all 11 existing resources from their old flat addresses to their new module-based addresses, without touching any real infrastructure — verified via `terraform plan` showing 0 to add and 0 to destroy both before and after the move
+- The only actual change applied was a harmless metadata normalization on the frontend service (clearing `client`/`client_version` fields originally set by `gcloud`, since the resource is now fully Terraform-managed)
+
+**Debugging note:** A `git push` was rejected by GitHub's secret scanning push protection after Terraform's automatic timestamped state backup files (`terraform.tfstate.<timestamp>.backup`, created during each `state mv` operation) were accidentally committed, exposing API keys in plaintext. `.gitignore` only had `terraform.tfstate.backup` covered, not the timestamped variant Terraform actually generates. Fixed by broadening the ignore pattern and resetting the unpushed commit before recommitting cleanly. Both API keys were rotated as a precaution.
+
+This is the safe way to refactor Terraform code for infrastructure that's already live — the alternative (not using `state mv`) would have destroyed and recreated the entire running application.
+
 ## Deployment
 
 **Frontend (live):** https://marketradar-frontend-533485774082.us-central1.run.app/
 **Backend (live):** https://marketradar-backend-533485774082.us-central1.run.app
 
-Both services provisioned entirely via Terraform (see `terraform/`), containerized with Docker, pushed via Artifact Registry.
+Both services provisioned entirely via modular Terraform (see `terraform/`), containerized with Docker, pushed via Artifact Registry.
 
 ### Known limitation: intermittent yfinance failures in cloud environments
 Since yfinance is an unofficial library accessing Yahoo Finance's internal endpoints (not a stable public API), requests from cloud provider IP ranges (including GCP) are occasionally rate-limited or briefly rejected. This surfaces as an "insufficient data" error on some requests, which the agent explains gracefully rather than crashing, but the same question retried shortly after often succeeds. This is a known constraint of the underlying data source, not a bug in the application logic.
 
 ### Note on Apple Silicon builds
 Docker images built on an Apple Silicon Mac (M1/M2/M3) default to `arm64` architecture, but Cloud Run requires `amd64`. Build with the platform flag explicitly:
-```
+
 docker build --platform linux/amd64 -t <image-name> .
-```
+
 Omitting this causes a cryptic `exec format error` on Cloud Run with no indication of the real cause — the container image builds and pushes successfully, and only fails at the Cloud Run startup health check stage.
 
 ## Progress Gallery
@@ -158,6 +173,9 @@ Omitting this causes a cryptic `exec format error` on Cloud Run with no indicati
 
 ### Day 4 - Chat UI Working
 ![Chat UI Working](assets/day04/Day_04.png)
+
+### Day 5 - Live on Google Cloud Run
+![MarketRadar deployed and running on Cloud Run](assets/day05/Day_05.png)
 
 ## Sample output — research_ticker
 
@@ -181,15 +199,14 @@ result = research_ticker("NVDA")
 ```
 
 ## Setup
-```
+
 pip install -r requirements.txt
-cp .env.example .env  # add your API keys
-```
+cp .env.example .env # add your API keys
 
 ## Testing
-```
+
 pytest agent/tests/ -v
-```
+
 
 ## Known limitations
 - News search uses loose keyword matching (NewsAPI), which can occasionally surface tangentially related articles (e.g. searching "Apple" returning unrelated results). The agent layer will need to account for this when synthesizing answers.
