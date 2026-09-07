@@ -19,7 +19,7 @@ Omitting this causes a cryptic `exec format error` on Cloud Run with no indicati
 ![MarketRadar back-end deployed and running on Cloud Run](assets/day05/mr-b.png)
 
 ### Terraform Stage 3 - Three isolated environments running from one codebase
-![Cloud Run services showing prod, dev, and staging all deployed independently](assets/terraform-stage3/environments.png)
+![Cloud Run services showing prod, dev, and staging all deployed independently](assets/terraform-stage3/environment-ss.png)
 
 ## Sample output — research_ticker
 
