@@ -213,6 +213,9 @@ Omitting this causes a cryptic `exec format error` on Cloud Run with no indicati
 ### Terraform Stage 3 - Three isolated environments running from one codebase
 ![Cloud Run services showing prod, dev, and staging all deployed independently](assets/terraform-stage3/environment-ss.png)
 
+### Terraform Stage 4 - CI/CD pipeline passing
+![GitHub Actions Terraform Plan and Apply workflows passing](assets/terraform-stage4/ci-cd-pipeline.png)
+
 ## Sample output — research_ticker
 
 ```python
