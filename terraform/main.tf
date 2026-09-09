@@ -5,6 +5,11 @@ terraform {
       version = "~> 5.0"
     }
   }
+
+  backend "gcs" {
+    bucket = "marketradar-tfstate"
+    prefix = "marketradar/state"
+  }
 }
 
 provider "google" {
