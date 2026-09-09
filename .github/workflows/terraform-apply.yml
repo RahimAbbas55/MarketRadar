@@ -34,6 +34,7 @@ jobs:
       - name: Terraform Apply (staging)
         run: |
           terraform workspace select staging
-          terraform apply -auto-approve -var-file="environments/staging.tfvars" \
+          terraform apply -auto-approve \
+            -var="environment=staging" \
             -var="openai_api_key=${{ secrets.OPENAI_API_KEY }}" \
             -var="newsapi_key=${{ secrets.NEWSAPI_KEY }}"
