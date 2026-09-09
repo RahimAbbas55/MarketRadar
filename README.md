@@ -1,6 +1,6 @@
 # MarketRadar
 
-![Status](https://img.shields.io/badge/status-in--progress-yellow)
+![Status](https://img.shields.io/badge/status-complete-brightgreen)
 ![Python](https://img.shields.io/badge/python-3.12-blue?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![OpenAI](https://img.shields.io/badge/OpenAI-GPT--4o-412991?logo=openai&logoColor=white)
@@ -13,7 +13,7 @@
 An MCP-powered agent for market and investment research. Ask natural-language questions like "compare Tesla and Rivian on volatility and recent news sentiment" and the agent chains together tool calls to pull live prices, compute technical indicators, search news, and synthesize an answer.
 
 ## Status
-MarketRadar is fully deployed and Terraform-managed across three isolated environments (prod, dev, staging), with modular infrastructure, remote GCS state, and CI/CD via GitHub Actions automating staging deployments (Stages 1-4 of the Terraform roadmap complete).
+MarketRadar is complete: a fully deployed, production-pattern AI agent with an MCP-powered backend, live GCP infrastructure across three isolated environments, and a complete Terraform learning arc (modules, multi-environment, remote state, CI/CD, and drift reconciliation) all verified against real infrastructure.
 
 ## Stack
 - Python 3.12, OpenAI function calling, MCP SDK
@@ -37,7 +37,7 @@ MarketRadar is fully deployed and Terraform-managed across three isolated enviro
 - Terraform modularization (registry, secrets, compute modules) ✅ complete
 - Multi-environment Terraform via workspaces (prod/dev/staging) ✅ complete
 - Remote state (GCS) + CI/CD (GitHub Actions) ✅ complete
-- Drift detection practice ⏳ Stage 5
+- Drift detection practice ✅ complete
 
 ## Daily Progress Log
 
@@ -172,6 +172,17 @@ Moved Terraform state off local disk and automated the plan/apply cycle through 
 - Third failure: Cloud Resource Manager API was never explicitly enabled for the project, which the `data "google_project"` lookup depends on — worked locally only because personal `gcloud auth` credentials have broader default access than a purpose-built service account.
 
 Production deploys remain manual and deliberate; staging now deploys automatically on every merge to main, giving a safe, continuously-verified environment to test against before ever touching production Terraform state by hand.
+
+### Terraform Stage 5 — Drift detection and reconciliation
+Deliberately introduced infrastructure drift and practiced detecting and reconciling it — the final stage of the Terraform roadmap.
+
+- Manually added an environment variable (`DRIFT_TEST`) directly to the staging backend service via `gcloud run services update`, bypassing Terraform entirely
+- Ran `terraform plan`, which correctly detected the unauthorized change and proposed removing it — Terraform always treats its own configuration as the source of truth, flagging anything that diverges regardless of how the divergence happened
+- Reconciled by running `terraform apply`, restoring the service to exactly match version-controlled configuration, verified via a follow-up `terraform plan` showing "No changes"
+
+**Debugging note:** While reconciling, an initial `terraform plan` attempt used a placeholder value instead of the real secret values for the `-var` CLI flags. Since Terraform's Secret Manager resources compare the *actual value* passed in against what's stored, this triggered an unrelated plan to destroy and recreate both secret versions — a sharp edge of passing secrets via CLI flags rather than a consistently-read `.tfvars` file. Caught before applying by reviewing the plan output carefully rather than assuming only the intended change would appear. This is a real, generalizable lesson: always double check that command output matches expectations exactly, especially for anything touching secrets, before typing `yes`.
+
+This closes out the full Terraform learning roadmap: flat config with import (Stage 1), modularization (Stage 2), multi-environment isolation via workspaces (Stage 3), remote state and CI/CD (Stage 4), and drift detection with reconciliation (Stage 5) — all practiced against real, live infrastructure rather than a toy example.
 
 ## Deployment
 
