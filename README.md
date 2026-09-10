@@ -187,6 +187,7 @@ This closes out the full Terraform learning roadmap: flat config with import (St
 ## Deployment
 
 **Production frontend (live):** https://marketradar-frontend-533485774082.us-central1.run.app/
+
 **Production backend (live):** https://marketradar-backend-533485774082.us-central1.run.app
 
 Dev and staging environments are deployed under `-dev` and `-staging` suffixed Cloud Run services in the same GCP project, isolated via separate Terraform workspaces. Staging deploys automatically via GitHub Actions on every merge to `main`.
